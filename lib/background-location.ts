@@ -6,11 +6,26 @@ import * as TaskManager from 'expo-task-manager';
 import { Platform } from 'react-native';
 
 export const LOCATION_TASK_NAME = 'background-location-task';
-export const LOCATION_INTERVAL_MS = 20 * 1000;
+export const LOCATION_INTERVAL_MS = getLocationInterval(
+  process.env.EXPO_PUBLIC_LOCATION_INTERVAL_MS
+);
 export const LOCATION_UPLOAD_BATCH_SIZE = getBatchSize(process.env.EXPO_PUBLIC_LOCATION_BATCH_SIZE);
+export type LocationTrackingMode = 'background' | 'foreground' | 'unavailable';
 
 const DATABASE_NAME = 'location-queue.db';
 const TABLE_NAME = 'pending_locations';
+const SHIFT_TABLE_NAME = 'active_shift';
+
+function getLocationInterval(value: string | undefined) {
+  const interval = Number(value);
+  return Number.isInteger(interval) && interval > 0 ? interval : 2 * 60 * 1000;
+}
+
+function getIntervalLabel() {
+  return LOCATION_INTERVAL_MS % 60_000 === 0
+    ? `${LOCATION_INTERVAL_MS / 60_000} minutes`
+    : `${LOCATION_INTERVAL_MS / 1000} seconds`;
+}
 
 function getBatchSize(value: string | undefined) {
   const batchSize = Number(value);
@@ -38,6 +53,7 @@ let isFlushing = false;
 let flushRequested = false;
 let foregroundSubscription: Location.LocationSubscription | null = null;
 let networkSubscription: ReturnType<typeof Network.addNetworkStateListener> | null = null;
+let backgroundStartPromise: Promise<LocationTrackingMode> | null = null;
 
 function hasInternetConnection(networkState: Network.NetworkState) {
   return networkState.isConnected === true && networkState.isInternetReachable !== false;
@@ -69,6 +85,10 @@ async function getDatabase() {
             payload TEXT NOT NULL,
             created_at INTEGER NOT NULL
           );
+          CREATE TABLE IF NOT EXISTS ${SHIFT_TABLE_NAME} (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            started_at TEXT NOT NULL
+          );
         `);
         return database;
       })
@@ -79,6 +99,28 @@ async function getDatabase() {
   }
 
   return databasePromise;
+}
+
+export async function getActiveShiftStart() {
+  const database = await getDatabase();
+  const shift = await database.getFirstAsync<{ started_at: string }>(
+    `SELECT started_at FROM ${SHIFT_TABLE_NAME} WHERE id = 1`
+  );
+  return shift?.started_at ?? null;
+}
+
+export async function setActiveShiftStart(startedAt: string | null) {
+  const database = await getDatabase();
+  await database.withExclusiveTransactionAsync(async (transaction) => {
+    if (startedAt) {
+      await transaction.runAsync(
+        `INSERT OR REPLACE INTO ${SHIFT_TABLE_NAME} (id, started_at) VALUES (1, ?)`,
+        startedAt
+      );
+    } else {
+      await transaction.runAsync(`DELETE FROM ${SHIFT_TABLE_NAME} WHERE id = 1`);
+    }
+  });
 }
 
 async function enqueueLocations(locations: Location.LocationObject[]) {
@@ -208,7 +250,16 @@ export async function flushPendingLocations() {
   }
 }
 
+export function startLocationQueueMonitoring() {
+  startNetworkMonitoring();
+  void flushPendingLocations();
+}
+
 export async function publishLocationNow() {
+  if (!(await getActiveShiftStart())) {
+    throw new Error('Clock in before sharing your location.');
+  }
+
   const foregroundPermission = await Location.requestForegroundPermissionsAsync();
   if (foregroundPermission.status !== 'granted') {
     throw new Error('Location permission denied');
@@ -224,6 +275,10 @@ export async function publishLocationNow() {
 
 async function handleLocations(locations: Location.LocationObject[]) {
   if (locations.length === 0) return;
+  if (!(await getActiveShiftStart())) {
+    console.info('Ignoring location update outside an active shift.');
+    return;
+  }
   await enqueueLocations(locations);
   await flushPendingLocations();
 }
@@ -242,25 +297,45 @@ TaskManager.defineTask<{ locations: Location.LocationObject[] }>(
 
 // Fallback when background tracking is unavailable; only runs while the app is open.
 async function startForegroundLocation() {
-  if (foregroundSubscription) return;
-  foregroundSubscription = await Location.watchPositionAsync(
-    {
-      accuracy: Location.Accuracy.Balanced,
-      timeInterval: LOCATION_INTERVAL_MS,
-      distanceInterval: 0,
-    },
-    (location) => void handleLocations([location]),
-    (reason) => console.warn('Foreground location watch failed:', reason)
-  );
-  console.warn('Location publishing is running in foreground-only mode.');
+  if (foregroundSubscription) return true;
+  try {
+    foregroundSubscription = await Location.watchPositionAsync(
+      {
+        accuracy: Location.Accuracy.Balanced,
+        timeInterval: LOCATION_INTERVAL_MS,
+        distanceInterval: 0,
+      },
+      (location) => void handleLocations([location]),
+      (reason) => console.warn('Foreground location watch failed:', reason)
+    );
+    console.warn('Location publishing is running in foreground-only mode.');
+    return true;
+  } catch (error) {
+    console.warn('Failed to start foreground location updates:', error);
+    return false;
+  }
 }
 
-export async function startBackgroundLocation() {
+export function startBackgroundLocation() {
   startNetworkMonitoring();
+  if (!backgroundStartPromise) {
+    backgroundStartPromise = startLocationTrackingForShift().finally(() => {
+      backgroundStartPromise = null;
+    });
+  }
+  return backgroundStartPromise;
+}
+
+async function startLocationTrackingForShift(): Promise<LocationTrackingMode> {
+  if (!(await getActiveShiftStart())) {
+    console.warn('Location tracking requires an active shift.');
+    return 'unavailable';
+  }
+
   const foregroundPermission = await Location.requestForegroundPermissionsAsync();
   if (foregroundPermission.status !== 'granted') {
     console.warn('Location permission denied; location publishing is disabled.');
-    return false;
+    return 'unavailable';
   }
   console.log(
     `Location events will be queued and uploaded in batches of ${LOCATION_UPLOAD_BATCH_SIZE} to ${ENDPOINT || '(no endpoint configured)'}`
@@ -269,8 +344,7 @@ export async function startBackgroundLocation() {
 
   if (IS_EXPO_GO) {
     console.warn('Background location is not supported in Expo Go; use a development build.');
-    await startForegroundLocation();
-    return false;
+    return (await startForegroundLocation()) ? 'foreground' : 'unavailable';
   }
 
   const backgroundPermission = await Location.requestBackgroundPermissionsAsync();
@@ -278,11 +352,10 @@ export async function startBackgroundLocation() {
     console.warn(
       'Background location permission denied. Enable "Allow all the time" in app settings.'
     );
-    await startForegroundLocation();
-    return false;
+    return (await startForegroundLocation()) ? 'foreground' : 'unavailable';
   }
 
-  if (await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME)) return true;
+  if (await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME)) return 'background';
 
   try {
     await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
@@ -294,15 +367,14 @@ export async function startBackgroundLocation() {
       showsBackgroundLocationIndicator: true,
       foregroundService: {
         notificationTitle: 'Aaptha is tracking your location',
-        notificationBody: `Location is shared every ${LOCATION_INTERVAL_MS / 1000} seconds.`,
+        notificationBody: `Location is shared every ${getIntervalLabel()}.`,
       },
     });
   } catch (error) {
     console.warn('Failed to start background location updates:', error);
-    await startForegroundLocation();
-    return false;
+    return (await startForegroundLocation()) ? 'foreground' : 'unavailable';
   }
-  return true;
+  return 'background';
 }
 
 export async function stopBackgroundLocation() {
