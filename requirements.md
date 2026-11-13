@@ -14,14 +14,12 @@ Primary users: elderly-care field workers (often less tech-savvy, may have older
 
 Reviewed comparable products in home-care, EVV (Electronic Visit Verification), and field-workforce tracking:
 
-
 | App                                                                         | Relevant idea to borrow                                                                                                                                                                                                                                                      |
 | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Timeero / AlayaCare / Aaniie / CareSmartz360 / CareVoyant (EVV leaders)** | GPS-verified clock-in/out at the client's address, geofenced visit verification, offline capture with background sync, single-swipe clock-in, care notes attached to each visit                                                                                              |
 | **Connecteam**                                                              | Transparency banner shown whenever tracking is active; tracking limited strictly to scheduled/clocked-in hours; geofence alerts if a caregiver leaves the client site unexpectedly; adaptive ping interval (frequent while moving, relaxed while stationary) to save battery |
 | **Homebase / When I Work**                                                  | At-a-glance "who's on shift / where" dashboard for admins; simple one-tap clock-in on the home screen                                                                                                                                                                        |
 | **Life360**                                                                 | Clear, friendly map UI; "last seen" + battery-level indicator so family/employer knows if location is stale vs. device is just off                                                                                                                                           |
-
 
 **Key best practices to adopt:**
 
@@ -133,4 +131,4 @@ Reviewed comparable products in home-care, EVV (Electronic Visit Verification), 
 5. Expected number of employees / concurrent active shifts (for backend sizing)?
 6. How many emergency contacts should be mandatory at onboarding (one vs. a primary + secondary), and should admins be able to view/edit them, or only the employee?
 
-*Sources consulted for best-practice research: Timeero, AlayaCare, Aaniie, CareSmartz360, CareVoyant (EVV/home-care apps); Connecteam, Homebase, When I Work (field workforce tracking); Life360 (consumer location-sharing UX).*
+_Sources consulted for best-practice research: Timeero, AlayaCare, Aaniie, CareSmartz360, CareVoyant (EVV/home-care apps); Connecteam, Homebase, When I Work (field workforce tracking); Life360 (consumer location-sharing UX)._

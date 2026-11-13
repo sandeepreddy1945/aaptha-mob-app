@@ -1,4 +1,5 @@
 import { AppButton, AppCard, AppPage, Divider, RowIcon, SectionHeading } from '@/components/app/ui';
+import { LocalNotificationExperiment } from '@/components/app/local-notification-experiment';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { Uniwind } from 'uniwind';
@@ -372,6 +373,8 @@ export default function ProfileScreen() {
           </Text>
         ) : null}
       </AppCard>
+
+      <LocalNotificationExperiment />
 
       <SectionHeading title="Appearance" detail="Choose how Aaptha Care looks on this device." />
       <AppCard className="gap-4">
