@@ -109,12 +109,6 @@ android {
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
     signingConfigs {
-        debug {
-            storeFile file('debug.keystore')
-            storePassword 'android'
-            keyAlias 'androiddebugkey'
-            keyPassword 'android'
-        }
         if (hasReleaseSigning) {
             release {
                 storeFile file(releaseKeystoreFile)
@@ -125,9 +119,6 @@ android {
         }
     }
     buildTypes {
-        debug {
-            signingConfig signingConfigs.debug
-        }
         release {
             // Use the dedicated upload key when provided; keep local builds usable otherwise.
             signingConfig hasReleaseSigning ? signingConfigs.release : signingConfigs.debug
