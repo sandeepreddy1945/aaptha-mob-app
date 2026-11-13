@@ -6,7 +6,7 @@ on:
 
 permissions:
   contents: write
-  issues: read
+  issues: write
 
 concurrency:
   group: apk-release-${{ github.repository }}
@@ -15,15 +15,31 @@ concurrency:
 jobs:
   build-apks:
     if: >-
+      github.event.issue.state == 'open' &&
+      (github.event.action == 'opened' || github.event.label.name == 'release' || github.event.label.name == 'apk') &&
       contains(github.event.issue.labels.*.name, 'release') &&
       contains(github.event.issue.labels.*.name, 'apk')
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    outputs:
+      release_tag: ${{ steps.release_tag.outputs.tag }}
+      release_url: ${{ steps.publish_release.outputs.url }}
     env:
       CI: 'true'
       ISSUE_NUMBER: ${{ github.event.issue.number }}
 
     steps:
+      - name: Comment that APK build started
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `🚀 APK release started from commit ${context.sha}. I will post the result here.`,
+            });
+
       - name: Check out the default branch
         uses: actions/checkout@v4
 
@@ -78,6 +94,17 @@ jobs:
           cd android
           ./gradlew --no-daemon --stacktrace assembleDebug assembleRelease
 
+      - name: Comment that APK builds completed
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '✅ Debug and signed release APK builds completed. Preparing the incremented release tag and GitHub Release.',
+            });
+
       - name: Choose the next APK release tag
         id: release_tag
         uses: actions/github-script@v7
@@ -106,6 +133,7 @@ jobs:
           cp android/app/build/outputs/apk/release/app-release.apk "dist/apks/${REPOSITORY_NAME}-${RELEASE_TAG}-release.apk"
 
       - name: Publish APKs to GitHub Release
+        id: publish_release
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ steps.release_tag.outputs.tag }}
@@ -117,7 +145,73 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "Android APKs $RELEASE_TAG" \
             --notes "Built from commit $GITHUB_SHA after issue #$ISSUE_NUMBER received both the release and apk labels."
+          echo "url=$(gh release view "$RELEASE_TAG" --json url --jq '.url')" >> "$GITHUB_OUTPUT"
 
       - name: Remove release keystore from runner
         if: always()
         run: rm -f android/app/upload-key.keystore
+
+  report-issue:
+    if: >-
+      always() &&
+      github.event.issue.state == 'open' &&
+      (github.event.action == 'opened' || github.event.label.name == 'release' || github.event.label.name == 'apk') &&
+      contains(github.event.issue.labels.*.name, 'release') &&
+      contains(github.event.issue.labels.*.name, 'apk')
+    needs: build-apks
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+    steps:
+      - name: Comment on release outcome and close on success
+        uses: actions/github-script@v7
+        env:
+          BUILD_RESULT: ${{ needs.build-apks.result }}
+          RELEASE_TAG: ${{ needs.build-apks.outputs.release_tag }}
+          RELEASE_URL: ${{ needs.build-apks.outputs.release_url }}
+        with:
+          script: |
+            const issueNumber = context.issue.number;
+            const buildResult = process.env.BUILD_RESULT;
+
+            if (buildResult === 'success') {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: `✅ APK release completed successfully. Tag: [${process.env.RELEASE_TAG}](${process.env.RELEASE_URL}). Both debug and release APKs are attached. Closing this issue.`,
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                state: 'closed',
+                state_reason: 'completed',
+              });
+              return;
+            }
+
+            const { data } = await github.rest.actions.listJobsForWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+              per_page: 100,
+            });
+            const failedSteps = data.jobs.flatMap((job) =>
+              (job.steps ?? [])
+                .filter((step) => step.conclusion === 'failure')
+                .map((step) => `${job.name}: ${step.name}`)
+            );
+            const failureDetail = failedSteps.length
+              ? `Failing step(s): ${failedSteps.join('; ')}.`
+              : `Workflow result: ${buildResult || 'unknown'}.`;
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: `❌ APK release did not complete. ${failureDetail} [Open workflow logs for the error details](${runUrl}). This issue remains open; fix the problem and reapply the release/apk labels or rerun the workflow.`,
+            });
