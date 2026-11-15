@@ -254,7 +254,7 @@ export default function LoginScreen() {
             />
             <Text className="text-muted-foreground text-center text-xs leading-5">
               {Platform.OS === 'android'
-                ? 'Add an Android OAuth client ID for com.sandeep209.minimal to enable Google sign-in.'
+                ? 'Add an Android OAuth client ID for com.aaptha.mobapp to enable Google sign-in.'
                 : `Add the Google OAuth client ID for ${Platform.OS} to enable Google sign-in.`}
             </Text>
           </>

@@ -1,4 +1,4 @@
-package com.sandeep209.minimal
+package com.aaptha.mobapp
 
 import android.app.Application
 import android.content.res.Configuration

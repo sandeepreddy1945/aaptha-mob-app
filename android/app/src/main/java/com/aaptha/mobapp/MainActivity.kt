@@ -1,4 +1,4 @@
-package com.sandeep209.minimal
+package com.aaptha.mobapp
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

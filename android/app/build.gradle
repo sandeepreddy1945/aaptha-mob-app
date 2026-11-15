@@ -117,9 +117,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.sandeep209.minimal'
+    namespace 'com.aaptha.mobapp'
     defaultConfig {
-        applicationId 'com.sandeep209.minimal'
+        applicationId 'com.aaptha.mobapp'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

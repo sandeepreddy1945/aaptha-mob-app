@@ -31,7 +31,7 @@
         "android.permission.FOREGROUND_SERVICE_LOCATION",
         "android.permission.POST_NOTIFICATIONS"
       ],
-      "package": "com.sandeep209.minimal"
+      "package": "com.aaptha.mobapp"
     },
     "web": {
       "bundler": "metro",
