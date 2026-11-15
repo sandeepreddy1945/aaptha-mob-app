@@ -1,7 +1,8 @@
 import { AppCard, RowIcon } from '@/components/app/ui';
+import { AuthLoadingScreen, useAuth } from '@/contexts/auth-context';
 import { Text } from '@/components/ui/text';
 import { getActiveShiftStart } from '@/lib/background-location';
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -29,6 +30,7 @@ const INITIAL_MESSAGE: ChatMessage = {
 };
 
 export default function ChatScreen() {
+  const { user, loading } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MESSAGE]);
@@ -36,6 +38,7 @@ export default function ChatScreen() {
   const [shiftContext, setShiftContext] = useState('Checking shift status…');
 
   useEffect(() => {
+    if (loading || !user) return;
     getActiveShiftStart()
       .then((startedAt) => {
         setShiftContext(
@@ -45,7 +48,7 @@ export default function ChatScreen() {
         );
       })
       .catch(() => setShiftContext('Shift details unavailable'));
-  }, []);
+  }, [loading, user?.uid]);
 
   const sendMessage = (message = draft) => {
     const trimmed = message.trim();
@@ -62,6 +65,9 @@ export default function ChatScreen() {
     ]);
     setDraft('');
   };
+
+  if (loading) return <AuthLoadingScreen />;
+  if (!user) return <Redirect href={'/login' as Href} />;
 
   return (
     <SafeAreaView

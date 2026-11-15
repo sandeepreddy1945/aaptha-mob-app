@@ -1,4 +1,5 @@
 import { AppButton, AppCard, AppPage, Divider, RowIcon, SectionHeading } from '@/components/app/ui';
+import { AuthLoadingScreen, useAuth } from '@/contexts/auth-context';
 import { LocalNotificationExperiment } from '@/components/app/local-notification-experiment';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
@@ -96,6 +97,7 @@ function FieldRow({
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { user, signOut } = useAuth();
   const [profile, setProfile] = useState(INITIAL_PROFILE);
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
   const [editingField, setEditingField] = useState<EditableField | null>(null);
@@ -104,6 +106,28 @@ export default function ProfileScreen() {
   const [contactDraft, setContactDraft] = useState<ContactDraft>(EMPTY_CONTACT);
   const [isContactModalVisible, setIsContactModalVisible] = useState(false);
   const [themeChoice, setThemeChoice] = useState<'system' | 'light' | 'dark'>('system');
+  const displayName = user?.displayName || profile.name;
+  const displayEmail = user?.email || profile.email;
+  const initials = displayName
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+  const confirmSignOut = () =>
+    Alert.alert('Sign out?', 'Your saved session will be cleared from this device.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign out',
+        style: 'destructive',
+        onPress: () => {
+          void signOut().catch((error) =>
+            Alert.alert('Unable to sign out', error instanceof Error ? error.message : 'Try again.')
+          );
+        },
+      },
+    ]);
 
   const openFieldEditor = (key: ProfileFieldKey, label: string) => {
     setEditingField({ key, label, value: profile[key] });
@@ -219,7 +243,7 @@ export default function ProfileScreen() {
         <View className="items-center">
           <View className="h-24 w-24 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900">
             <Text className="text-3xl font-extrabold text-emerald-900 dark:text-emerald-100">
-              AS
+              {initials}
             </Text>
           </View>
           <Pressable
@@ -229,7 +253,7 @@ export default function ProfileScreen() {
             <Camera color="#344054" size={16} />
             <Text className="text-foreground text-sm font-semibold">Change photo</Text>
           </Pressable>
-          <Text className="text-foreground mt-4 text-xl font-extrabold">{profile.name}</Text>
+          <Text className="text-foreground mt-4 text-xl font-extrabold">{displayName}</Text>
           <Text className="text-muted-foreground mt-1 text-sm">Caregiver · Demo employee</Text>
           <View className="mt-3 rounded-full bg-emerald-50 px-3 py-1 dark:bg-emerald-950">
             <Text className="text-xs font-bold text-emerald-800 dark:text-emerald-200">
@@ -254,7 +278,7 @@ export default function ProfileScreen() {
         <FieldRow
           icon={Mail}
           label="Email address"
-          value={profile.email}
+          value={displayEmail}
           onPress={() => openFieldEditor('email', 'Email address')}
         />
         <Divider />
@@ -464,9 +488,7 @@ export default function ProfileScreen() {
           <ChevronRight color="#98a2b3" size={18} />
         </Pressable>
         <Divider />
-        <Pressable
-          className="flex-row items-center gap-3 py-4"
-          onPress={() => notConnected('Sign out')}>
+        <Pressable className="flex-row items-center gap-3 py-4" onPress={confirmSignOut}>
           <RowIcon icon={LogOut} tone="rose" />
           <View className="flex-1">
             <Text className="text-foreground font-bold">Sign out</Text>

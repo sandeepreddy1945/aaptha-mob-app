@@ -29,7 +29,11 @@ yarn-error.*
 .DS_Store
 *.pem
 
+# Firebase native configuration copied for local Android builds
+/android/app/google-services.json
+
 # local env files
+/.env
 .env*.local
 
 # typescript

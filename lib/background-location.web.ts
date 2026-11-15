@@ -27,6 +27,8 @@ export async function setActiveShiftStart(startedAt: string | null) {
 
 export function startLocationQueueMonitoring() {}
 
+export function stopLocationQueueMonitoring() {}
+
 export async function flushPendingLocations() {}
 
 export async function publishLocationNow(): Promise<never> {

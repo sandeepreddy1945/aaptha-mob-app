@@ -7,11 +7,10 @@
     "icon": "./assets/images/icon.png",
     "scheme": "minimal",
     "userInterfaceStyle": "automatic",
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.sandeep209.minimal"
     },
     "android": {
       "adaptiveIcon": {
@@ -80,12 +79,8 @@
         {
           "android": {
             "enabled": true,
-            "singleShareMimeTypes": [
-              "image/*"
-            ],
-            "multipleShareMimeTypes": [
-              "image/*"
-            ]
+            "singleShareMimeTypes": ["image/*"],
+            "multipleShareMimeTypes": ["image/*"]
           }
         }
       ],
@@ -107,7 +102,8 @@
           "enableRemoteNotifications": true,
           "enableBackgroundRemoteNotifications": false
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

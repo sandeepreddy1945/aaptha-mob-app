@@ -1,5 +1,8 @@
+import { AuthLoadingScreen, useAuth } from '@/contexts/auth-context';
 import { Redirect, type Href } from 'expo-router';
 
 export default function IndexRoute() {
-  return <Redirect href={'/(tabs)/home' as Href} />;
+  const { user, loading } = useAuth();
+  if (loading) return <AuthLoadingScreen />;
+  return <Redirect href={(user ? '/(tabs)/home' : '/login') as Href} />;
 }

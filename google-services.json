@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "5973256717",
+    "project_id": "aaptha-mob-app",
+    "storage_bucket": "aaptha-mob-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:5973256717:android:eabd538ee77c84d827c344",
+        "android_client_info": {
+          "package_name": "com.aaptha.mobapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "5973256717-uf72gph8am2g4es1gn9v35tdc89k7lmo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAM_eY6-_nbLJCsEHVy0t2uynCNrUdADpY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "5973256717-uf72gph8am2g4es1gn9v35tdc89k7lmo.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

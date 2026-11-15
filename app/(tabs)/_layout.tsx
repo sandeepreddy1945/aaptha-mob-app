@@ -1,12 +1,17 @@
-import { Tabs } from 'expo-router';
+import { AuthLoadingScreen, useAuth } from '@/contexts/auth-context';
+import { Tabs, Redirect, type Href } from 'expo-router';
 import { Bell, House, UserRound } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUniwind } from 'uniwind';
 
 export default function TabsLayout() {
+  const { user, loading } = useAuth();
   const { theme } = useUniwind();
   const insets = useSafeAreaInsets();
   const isDark = theme === 'dark';
+
+  if (loading) return <AuthLoadingScreen />;
+  if (!user) return <Redirect href={'/login' as Href} />;
 
   return (
     <Tabs

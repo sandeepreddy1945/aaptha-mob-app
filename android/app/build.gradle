@@ -2,6 +2,25 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
+def googleServicesJson = rootProject.file("../google-services.json")
+if (googleServicesJson.exists()) {
+    def expoConfig = new groovy.json.JsonSlurper().parse(rootProject.file("../app.json")).expo
+    def googleServicesConfig = new groovy.json.JsonSlurper().parse(googleServicesJson)
+    def hasMatchingClient = (googleServicesConfig.client ?: []).any { client ->
+        client.client_info?.android_client_info?.package_name == expoConfig.android.package
+    }
+
+    if (hasMatchingClient) {
+        copy {
+            from googleServicesJson
+            into projectDir
+        }
+        apply plugin: "com.google.gms.google-services"
+    } else {
+        logger.warn("Skipping Google Services plugin: google-services.json has no client for ${expoConfig.android.package}.")
+    }
+}
+
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
 /**

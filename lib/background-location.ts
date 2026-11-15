@@ -255,6 +255,11 @@ export function startLocationQueueMonitoring() {
   void flushPendingLocations();
 }
 
+export function stopLocationQueueMonitoring() {
+  networkSubscription?.remove();
+  networkSubscription = null;
+}
+
 export async function publishLocationNow() {
   if (!(await getActiveShiftStart())) {
     throw new Error('Clock in before sharing your location.');
