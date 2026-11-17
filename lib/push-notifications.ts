@@ -1,12 +1,26 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Device from 'expo-device';
-import Constants, { AppOwnership } from 'expo-constants';
+import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { deleteDoc, doc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { Platform } from 'react-native';
+import { Platform, TurboModuleRegistry } from 'react-native';
 import { db } from './firebase';
 
-const isExpoGo = Constants.appOwnership === AppOwnership.Expo;
+const isExpoGo = Boolean(Constants.expoGoConfig);
+let warnedMissingNativeFirebase = false;
+
+function hasNativeFirebaseApp() {
+  if (Platform.OS === 'web' || isExpoGo) return false;
+  if (TurboModuleRegistry.get('NativeRNFBTurboApp')) return true;
+
+  if (!warnedMissingNativeFirebase) {
+    warnedMissingNativeFirebase = true;
+    console.warn(
+      'Firebase Messaging requires a rebuilt native app with @react-native-firebase/app and messaging installed.'
+    );
+  }
+  return false;
+}
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -35,7 +49,7 @@ async function saveFcmToken(uid: string, token: string) {
 }
 
 export async function registerFcmToken(uid: string) {
-  if (!Device.isDevice || isExpoGo) return null;
+  if (!Device.isDevice || !hasNativeFirebaseApp()) return null;
 
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
@@ -57,7 +71,7 @@ export async function registerFcmToken(uid: string) {
 }
 
 export async function subscribeToFcmTokenRefresh(uid: string) {
-  if (isExpoGo) return () => undefined;
+  if (!hasNativeFirebaseApp()) return () => undefined;
   try {
     const messagingModule = await import('@react-native-firebase/messaging');
     return messagingModule.onTokenRefresh(messagingModule.getMessaging(), (token) => {
@@ -72,7 +86,7 @@ export async function subscribeToFcmTokenRefresh(uid: string) {
 }
 
 export async function subscribeToForegroundMessages() {
-  if (isExpoGo) return () => undefined;
+  if (!hasNativeFirebaseApp()) return () => undefined;
   try {
     const messagingModule = await import('@react-native-firebase/messaging');
     return messagingModule.onMessage(messagingModule.getMessaging(), async (message) => {

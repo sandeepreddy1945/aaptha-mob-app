@@ -107,6 +107,11 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "googleOAuth": {
+        "androidClientId": "5973256717-8ekqvsql833fp89cjtgn49t6r8fnb4bh.apps.googleusercontent.com"
+      }
     }
   }
 }

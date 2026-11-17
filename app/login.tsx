@@ -93,10 +93,16 @@ export default function LoginScreen() {
   const configuredGoogleOAuth = Constants.expoConfig?.extra?.googleOAuth ?? {};
   const googleWebClientId =
     process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || configuredGoogleOAuth.webClientId || '';
-  const googleAndroidClientId =
+  const googleAndroidClientIdCandidate =
     process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || configuredGoogleOAuth.androidClientId;
-  const googleIosClientId =
+  const googleAndroidClientId =
+    googleAndroidClientIdCandidate !== googleWebClientId
+      ? googleAndroidClientIdCandidate
+      : undefined;
+  const googleIosClientIdCandidate =
     process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || configuredGoogleOAuth.iosClientId;
+  const googleIosClientId =
+    googleIosClientIdCandidate !== googleWebClientId ? googleIosClientIdCandidate : undefined;
   const googleConfig = {
     webClientId: googleWebClientId,
     androidClientId: googleAndroidClientId,
@@ -254,8 +260,8 @@ export default function LoginScreen() {
             />
             <Text className="text-muted-foreground text-center text-xs leading-5">
               {Platform.OS === 'android'
-                ? 'Add an Android OAuth client ID for com.aaptha.mobapp to enable Google sign-in.'
-                : `Add the Google OAuth client ID for ${Platform.OS} to enable Google sign-in.`}
+                ? 'Create a separate Android OAuth client for com.aaptha.mobapp using this build’s signing certificate SHA-1. Do not reuse the Web client ID.'
+                : `Add the separate Google OAuth client ID for ${Platform.OS} to enable Google sign-in.`}
             </Text>
           </>
         )}

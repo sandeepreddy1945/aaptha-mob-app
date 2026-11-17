@@ -30,6 +30,13 @@ module.exports = ({ config }) => {
         .find((client) => client.client_type === 3)?.client_id;
     androidClientId ||= oauthClients.find((client) => client.client_type === 1)?.client_id;
 
+    if (androidClientId && androidClientId === webClientId) {
+      console.warn(
+        'Ignoring Google Android client ID: Android OAuth requires a separate client ID from the Web client.'
+      );
+      androidClientId = undefined;
+    }
+
     if (matchingAndroidClient) {
       nextConfig.android.googleServicesFile = './google-services.json';
       nextConfig.plugins = [...(nextConfig.plugins ?? [])];

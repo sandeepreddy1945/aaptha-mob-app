@@ -1,5 +1,6 @@
 import { AppButton, AppCard, AppPage, Divider, RowIcon, SectionHeading } from '@/components/app/ui';
 import { AuthLoadingScreen, useAuth } from '@/contexts/auth-context';
+import { EMPLOYEE_ID } from '@/lib/employee-config';
 import { LocalNotificationExperiment } from '@/components/app/local-notification-experiment';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
@@ -51,7 +52,7 @@ type EditableField = { key: ProfileFieldKey; label: string; value: string };
 
 const INITIAL_PROFILE: ProfileData = {
   name: 'Asha Sharma',
-  employeeId: 'AAP-1048',
+  employeeId: EMPLOYEE_ID,
   email: 'asha@example.com',
   phone: 'Not added',
   address: 'Not added',

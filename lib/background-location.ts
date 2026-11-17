@@ -1,3 +1,6 @@
+import { EMPLOYEE_ID } from './employee-config';
+import { auth } from './firebase-auth';
+import { LOCATION_ENDPOINT } from './api-config';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Location from 'expo-location';
 import * as Network from 'expo-network';
@@ -32,15 +35,7 @@ function getBatchSize(value: string | undefined) {
   return Number.isInteger(batchSize) && batchSize > 0 ? batchSize : 10;
 }
 
-function getLocationEndpoint() {
-  const configuredEndpoint = process.env.EXPO_PUBLIC_LOCATION_ENDPOINT?.trim();
-  if (configuredEndpoint) return configuredEndpoint;
-  if (!__DEV__) return '';
-
-  return 'https://location-backend-mup5.onrender.com/locations';
-}
-
-const ENDPOINT = getLocationEndpoint();
+const ENDPOINT = LOCATION_ENDPOINT;
 const IS_EXPO_GO = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 type PendingLocation = {
@@ -153,7 +148,9 @@ function toApiLocation(location: Location.LocationObject) {
 async function sendEvents(locations: Location.LocationObject[]) {
   if (locations.length === 0) return false;
   if (!ENDPOINT) {
-    console.warn('Location publishing requires EXPO_PUBLIC_LOCATION_ENDPOINT.');
+    console.warn(
+      'Location publishing requires EXPO_PUBLIC_API_BASE_URL or EXPO_PUBLIC_LOCATION_ENDPOINT.'
+    );
     return false;
   }
 
@@ -162,6 +159,8 @@ async function sendEvents(locations: Location.LocationObject[]) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        employeeId: EMPLOYEE_ID,
+        uid: auth.currentUser?.uid,
         type: 'location',
         platform: Platform.OS,
         sessionId: Constants.sessionId || `${Platform.OS}-session`,
@@ -197,7 +196,9 @@ async function deleteAcknowledgedLocations(
 
 async function drainLocationQueue() {
   if (!ENDPOINT) {
-    console.warn('Location queue retained; configure EXPO_PUBLIC_LOCATION_ENDPOINT to upload it.');
+    console.warn(
+      'Location queue retained; configure EXPO_PUBLIC_API_BASE_URL or EXPO_PUBLIC_LOCATION_ENDPOINT to upload it.'
+    );
     return;
   }
   if (!(await isInternetAvailable())) {

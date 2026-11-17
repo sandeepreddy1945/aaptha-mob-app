@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "expo start -c --dev-client",
     "android": "expo run:android",
+    "android:local": "EXPO_PUBLIC_API_BASE_URL=${EXPO_PUBLIC_API_BASE_URL:-http://10.0.2.2:8000} EXPO_PUBLIC_LOCATION_ENDPOINT=${EXPO_PUBLIC_API_BASE_URL:-http://10.0.2.2:8000}/locations expo start -c --dev-client --android",
     "ios": "expo run:ios",
     "web": "expo start -c --web",
     "format": "prettier --write .",
